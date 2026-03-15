@@ -38,9 +38,10 @@ export async function handler(event: BatchEvent) {
   const baseName = path.basename(key, path.extname(key));
   const outputDir = path.dirname(key) + "/output";
 
-  for (const ep of episodesWithPages) {
+  for (let i = 0; i < episodesWithPages.length; i++) {
+    const ep = episodesWithPages[i];
     const episodeEpub = buildEpisodeEpub(pages, ep);
-    const outputKey = `${outputDir}/${baseName}_ep${String(ep.number).padStart(2, "0")}.epub`;
+    const outputKey = `${outputDir}/${baseName}_ep${String(i + 1).padStart(2, "0")}.epub`;
     await uploadEpub(bucket, outputKey, episodeEpub);
   }
 

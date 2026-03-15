@@ -4,7 +4,10 @@ const s3 = new S3Client({});
 
 export async function downloadEpub(bucket: string, key: string): Promise<Buffer> {
   const res = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
-  const bytes = await res.Body!.transformToByteArray();
+  if (!res.Body) {
+    throw new Error(`S3オブジェクトが空です: s3://${bucket}/${key}`);
+  }
+  const bytes = await res.Body.transformToByteArray();
   return Buffer.from(bytes);
 }
 

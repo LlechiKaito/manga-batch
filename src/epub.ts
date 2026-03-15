@@ -110,23 +110,37 @@ export function buildEpisodeEpub(
     (p) => p.index >= episode.startPage && p.index <= episode.endPage
   );
 
-  // 画像ファイルを追加
+  // 画像ファイルとXHTMLラッパーを追加
   for (const page of episodePages) {
-    const fileName = `page_${String(page.index).padStart(4, "0")}${path.extname(page.entryName)}`;
-    zip.addFile(`OEBPS/images/${fileName}`, Buffer.from(page.base64, "base64"));
+    const imgFileName = `page_${String(page.index).padStart(4, "0")}${path.extname(page.entryName)}`;
+    zip.addFile(`OEBPS/images/${imgFileName}`, Buffer.from(page.base64, "base64"));
+
+    const xhtmlContent = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head><title>Page ${page.index}</title></head>
+<body style="margin:0;padding:0;text-align:center;">
+  <img src="images/${imgFileName}" style="max-width:100%;max-height:100vh;" alt="page"/>
+</body>
+</html>`;
+    zip.addFile(`OEBPS/page_${String(page.index).padStart(4, "0")}.xhtml`, Buffer.from(xhtmlContent));
   }
 
   // content.opf を生成
   const manifestItems = episodePages
     .map((p) => {
-      const fileName = `page_${String(p.index).padStart(4, "0")}${path.extname(p.entryName)}`;
-      const id = `img_${p.index}`;
-      return `    <item id="${id}" href="images/${fileName}" media-type="${p.mimeType}"/>`;
+      const imgFileName = `page_${String(p.index).padStart(4, "0")}${path.extname(p.entryName)}`;
+      const pageId = `page_${p.index}`;
+      const imgId = `img_${p.index}`;
+      return [
+        `    <item id="${pageId}" href="page_${String(p.index).padStart(4, "0")}.xhtml" media-type="application/xhtml+xml"/>`,
+        `    <item id="${imgId}" href="images/${imgFileName}" media-type="${p.mimeType}"/>`,
+      ].join("\n");
     })
     .join("\n");
 
   const spineItems = episodePages
-    .map((p) => `    <itemref idref="img_${p.index}"/>`)
+    .map((p) => `    <itemref idref="page_${p.index}"/>`)
     .join("\n");
 
   const contentOpf = `<?xml version="1.0" encoding="UTF-8"?>
